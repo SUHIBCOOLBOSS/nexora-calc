@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEXORA CALC</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; display: grid; place-items: center;
+  background: #07040d; color: white; font-family: Arial, sans-serif;
+}
+.calc {
+  width: min(92vw, 370px); padding: 24px; border-radius: 24px;
+  background: #130b20; border: 1px solid #a855f7;
+  box-shadow: 0 0 35px #8b5cf666;
+}
+h1 { text-align: center; color: #d8b4fe; letter-spacing: 4px; }
+#screen {
+  width: 100%; padding: 18px 10px; margin-bottom: 16px;
+  background: #080510; color: white; border: 1px solid #6d28d9;
+  border-radius: 12px; font-size: 28px; text-align: right;
+}
+.keys { display: grid; grid-template-columns: repeat(4,1fr); gap: 9px; }
+button {
+  height: 58px; border-radius: 12px; border: 1px solid #6d28d9;
+  background: #211333; color: white; font-size: 20px; cursor: pointer;
+}
+button:hover { background: #6d28d9; box-shadow: 0 0 14px #a855f7; }
+.op { color: #d8b4fe; }
+.eq { background: #7e22ce; }
+</style>
+</head>
+<body>
+<main class="calc">
+<h1>NEXORA</h1>
+<input id="screen" value="0" readonly aria-label="Calculator display">
+<div class="keys">
+<button onclick="clearAll()">AC</button>
+<button onclick="removeLast()">DEL</button>
+<button class="op" onclick="put('%')">%</button>
+<button class="op" onclick="put('/')">÷</button>
+<button onclick="put('7')">7</button>
+<button onclick="put('8')">8</button>
+<button onclick="put('9')">9</button>
+<button class="op" onclick="put('*')">×</button>
+<button onclick="put('4')">4</button>
+<button onclick="put('5')">5</button>
+<button onclick="put('6')">6</button>
+<button class="op" onclick="put('-')">−</button>
+<button onclick="put('1')">1</button>
+<button onclick="put('2')">2</button>
+<button onclick="put('3')">3</button>
+<button class="op" onclick="put('+')">+</button>
+<button onclick="put('(')">(</button>
+<button onclick="put('0')">0</button>
+<button onclick="put('.')">.</button>
+<button class="eq" onclick="calculate()">=</button>
+</div>
+</main>
+<script>
+let expr = '';
+const screen = document.getElementById('screen');
+function update() { screen.value = expr || '0'; }
+function put(v) { if (expr.length < 100) expr += v; update(); }
+function clearAll() { expr = ''; update(); }
+function removeLast() { expr = expr.slice(0,-1); update(); }
+function calculate() {
+  if (!expr || !/^[0-9+\-*/%.() ]+$/.test(expr)) {
+    screen.value = 'Error'; return;
+  }
+  try {
+    const t = expr.match(/(?:\d+\.?\d*|\.\d+|[()+\-*/%])/g);
+    if (!t || t.join('') !== expr.replace(/\s/g,'')) throw Error();
+    let i = 0;
+    function atom() {
+      const x = t[i++];
+      if (x === '(') {
+        const n = sum();
+        if (t[i++] !== ')') throw Error();
+        return n;
+      }
+      if (x === '-') return -atom();
+      if (x === '+') return atom();
+      if (!x || !/^(?:\d+\.?\d*|\.\d+)$/.test(x)) throw Error();
+      return Number(x);
+    }
+    function product() {
+      let n = atom();
+      while (['*','/','%'].includes(t[i])) {
+        const op = t[i++], b = atom();
+        if ((op === '/' || op === '%') && b === 0) throw Error();
+        n = op === '*' ? n*b : op === '/' ? n/b : n%b;
+      }
+      return n;
+    }
+    function sum() {
+      let n = product();
+      while (t[i] === '+' || t[i] === '-') {
+        const op = t[i++], b = product();
+        n = op === '+' ? n+b : n-b;
+      }
+      return n;
+    }
+    const answer = sum();
+    if (i !== t.length || !Number.isFinite(answer)) throw Error();
+    expr = String(Number(answer.toPrecision(12)));
+    update();
+  } catch {
+    expr = '';
+    screen.value = 'Error';
+  }
+}
+document.addEventListener('keydown', e => {
+  if (/^[0-9.+\-*/%()]$/.test(e.key)) put(e.key);
+  else if (e.key === 'Enter' || e.key === '=') calculate();
+  else if (e.key === 'Backspace') removeLast();
+  else if (e.key === 'Escape') clearAll();
+});
+</script>
+</body>
+</html>
